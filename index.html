@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Interval Clock</title>
+
+  <style>
+    :root{
+      --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+              "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+      --bg-app: radial-gradient(1200px 800px at 20% 0%, rgba(0,0,0,.06), transparent 60%),
+                radial-gradient(900px 600px at 90% 20%, rgba(0,0,0,.05), transparent 55%),
+                linear-gradient(180deg, #f7f7f8, #f2f2f4);
+
+      --bg-ready: var(--bg-app);
+      --bg-work:  radial-gradient(900px 600px at 20% 0%, rgba(255,255,255,.18), transparent 55%),
+                  linear-gradient(180deg, #ff4fa0, #ff74b8);
+      --bg-rest:  radial-gradient(900px 600px at 20% 0%, rgba(255,255,255,.18), transparent 55%),
+                  linear-gradient(180deg, #3c8dff, #66b3ff);
+
+      --text: #0b0b0f;
+      --muted: rgba(11,11,15,.62);
+
+      --card: rgba(255,255,255,.78);
+      --card-strong: rgba(255,255,255,.92);
+      --border: rgba(0,0,0,.10);
+      --shadow: 0 10px 30px rgba(0,0,0,.10);
+      --shadow-soft: 0 6px 18px rgba(0,0,0,.08);
+
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+
+      --btn: rgba(255,255,255,.92);
+      --btn-border: rgba(0,0,0,.14);
+      --btn-shadow: 0 8px 20px rgba(0,0,0,.10);
+
+      --danger: #ff3b30;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body{
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg-ready);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+      -webkit-user-select:none;
+      overflow-x: hidden;
+    }
+
+    .screen{ display:none; min-height: 100vh; padding: 18px; }
+    .screen.active{ display:block; }
+
+    .wrap{ max-width: 980px; margin: 0 auto; display:grid; gap: 14px; }
+
+    .header{
+      display:flex; align-items: baseline; justify-content: space-between;
+      padding: 4px 2px;
+    }
+    .appTitle{
+      font-size: 28px;
+      font-weight: 860;
+      letter-spacing: -0.02em;
+    }
+    .appTag{
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+
+    .card{
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 16px;
+      background: var(--card);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .card.strong{
+      background: var(--card-strong);
+      box-shadow: var(--shadow);
+    }
+
+    .title{
+      font-size: 20px;
+      font-weight: 840;
+      letter-spacing: -0.015em;
+      margin-bottom: 6px;
+    }
+    .sub{
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 560;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .field{
+      display:grid; gap: 6px;
+      padding: 12px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(0,0,0,.08);
+      background: rgba(255,255,255,.62);
+    }
+    .field label{
+      font-size: 12px;
+      color: rgba(11,11,15,.68);
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    input[type="number"]{
+      width:100%;
+      font-size: 18px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.14);
+      outline:none;
+      background: rgba(255,255,255,.95);
+      font-family: var(--font);
+      font-weight: 700;
+    }
+
+    .row{ display:flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+    button{
+      flex: 1 1 160px;
+      font-size: 17px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--btn-border);
+      background: var(--btn);
+      font-weight: 820;
+      letter-spacing: -0.01em;
+      box-shadow: var(--btn-shadow);
+      font-family: var(--font);
+    }
+    button.primary{
+      border-width: 2px;
+      border-color: rgba(10,132,255,.55);
+    }
+    button.danger{
+      border-color: rgba(255,59,48,.55);
+      color: #8b0f09;
+    }
+    button:disabled{ opacity:.45; box-shadow: none; }
+
+    .summary{
+      display:grid; gap: 10px;
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(0,0,0,.10);
+      background: rgba(255,255,255,.58);
+      font-variant-numeric: tabular-nums;
+    }
+    .summary .line{
+      display:flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+    }
+    .summary .k{
+      color: rgba(11,11,15,.70);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .summary .v{
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,.10);
+      background: rgba(255,255,255,.60);
+      font-size: 12px;
+      color: rgba(11,11,15,.72);
+      font-weight: 750;
+      margin-top: 10px;
+    }
+
+    /* Run screen */
+    .run{
+      min-height: 100vh;
+      display:grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .runCard{
+      width: min(980px, 100%);
+      background: rgba(255,255,255,.80);
+      border: 1px solid rgba(0,0,0,.14);
+      border-radius: 28px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display:grid;
+      gap: 12px;
+      text-align:center;
+    }
+    .phase{
+      font-size: 14px;
+      font-weight: 920;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      opacity: .88;
+    }
+    .bigTime{
+      font-size: clamp(96px, 16vw, 190px);
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      padding: 6px 0;
+    }
+    .progress{
+      display:flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: rgba(11,11,15,.78);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Progress bar + markers */
+    .pbar{
+      position: relative;
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.12);
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.12);
+    }
+    .pbarFill{
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: rgba(255,255,255,.86);
+      transition: width 70ms linear; /* faster */
+      will-change: width;
+    }
+    .pbarMarkers{
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .pbarMarker{
+      position: absolute;
+      top: -3px;
+      bottom: -3px;
+      width: 2px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.75);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.06);
+    }
+    .pbarText{
+      font-size: 12px;
+      font-weight: 800;
+      color: rgba(11,11,15,.72);
+      letter-spacing: .02em;
+      text-align: left;
+      display:flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .pbarText span{ white-space: nowrap; }
+
+    .tapHint{
+      font-size: 18px;
+      font-weight: 880;
+      padding: 14px 10px;
+      opacity: .92;
+    }
+    .tinyHint{
+      font-size: 13px;
+      color: rgba(11,11,15,.68);
+      font-weight: 650;
+    }
+
+    /* Finished */
+    .heroDone{
+      display:grid; gap: 8px;
+      padding: 4px 2px 8px 2px;
+    }
+    .doneTitle{
+      font-size: 26px;
+      font-weight: 920;
+      letter-spacing: -0.02em;
+    }
+    .doneSub{
+      font-size: 14px;
+      color: rgba(11,11,15,.70);
+      font-weight: 650;
+      line-height: 1.45;
+    }
+
+    .statsGrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat{
+      padding: 14px;
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(0,0,0,.10);
+      background: rgba(255,255,255,.58);
+      display:grid; gap: 6px;
+    }
+    .stat .k{
+      color: rgba(11,11,15,.66);
+      font-size: 12px;
+      font-weight: 780;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+    .stat .v{
+      font-size: 18px;
+      font-weight: 930;
+      letter-spacing: -0.01em;
+    }
+    .stat .s{
+      font-size: 12px;
+      color: rgba(11,11,15,.60);
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    body.bg-work{ background: var(--bg-work); }
+    body.bg-rest{ background: var(--bg-rest); }
+    body.bg-ready{ background: var(--bg-ready); }
+
+    .fullTap{
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display:none;
+    }
+    .fullTap.active{ display:block; }
+
+    @media (max-width: 720px){
+      .statsGrid{ grid-template-columns: 1fr; }
+      .grid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body class="bg-ready">
+
+  <!-- SCREEN 1 -->
+  <section class="screen active" id="screenSetup">
+    <div class="wrap">
+      <div class="header">
+        <div class="appTitle">Interval Clock</div>
+        <div class="appTag">iPad-friendly • offline</div>
+      </div>
+
+      <div class="card strong">
+        <div class="title">Workout setup</div>
+        <div class="sub">Enter your interval settings, review the summary, then confirm.</div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="inWork">WORK (seconds)</label>
+            <input id="inWork" type="number" min="1" step="1" value="40">
+          </div>
+          <div class="field">
+            <label for="inRest">REST (seconds)</label>
+            <input id="inRest" type="number" min="0" step="1" value="20">
+          </div>
+          <div class="field">
+            <label for="inWorkoutsPerSet">WORKOUTS PER SET</label>
+            <input id="inWorkoutsPerSet" type="number" min="1" step="1" value="5">
+          </div>
+          <div class="field">
+            <label for="inSets">NUMBER OF SETS</label>
+            <input id="inSets" type="number" min="1" step="1" value="2">
+          </div>
+        </div>
+
+        <div class="summary" id="summaryBox">
+          <div class="line"><span class="k">Total workouts</span><span class="v" id="sumTotalWorkouts">—</span></div>
+          <div class="line"><span class="k">Active time</span><span class="v" id="sumActive">—</span></div>
+          <div class="line"><span class="k">Rest time</span><span class="v" id="sumRest">—</span></div>
+          <div class="line"><span class="k">Total time</span><span class="v" id="sumTotal">—</span></div>
+          <div class="sub">Rule: the very last rest is skipped so the session ends right after the final work interval.</div>
+        </div>
+
+        <div class="pill">Tip: On iPad, open in Safari → Share → <b>Add to Home Screen</b> for a full-screen “app”.</div>
+
+        <div class="row">
+          <button id="btnConfirm" class="primary">Confirm &amp; Continue</button>
+          <button id="btnResetSetup">Reset</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 2 -->
+  <section class="screen" id="screenRun">
+    <div class="run">
+      <div class="runCard" id="runCard">
+        <div class="phase" id="runPhase">READY</div>
+        <div class="bigTime" id="runTime">00:00</div>
+
+        <div class="progress" id="runProgress">Set 0/0 • Workout 0/0</div>
+
+        <div class="pbar" aria-label="Session progress">
+          <div class="pbarFill" id="pbarFill"></div>
+          <div class="pbarMarkers" id="pbarMarkers"></div>
+        </div>
+
+        <div class="pbarText" id="pbarText">
+          <span id="pbarPct">0% complete</span>
+          <span id="pbarSetText">Set 0/0</span>
+        </div>
+
+        <div class="tapHint" id="tapHint">Tap to start workout</div>
+        <div class="tinyHint" id="runHint">First tap unlocks audio/voice on iPad.</div>
+
+        <div class="row" style="margin-top:6px;">
+          <button id="btnPause" disabled>Pause</button>
+          <button id="btnCancel" class="danger" disabled>Cancel</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 3 -->
+  <section class="screen" id="screenDone">
+    <div class="wrap">
+      <div class="header">
+        <div class="appTitle">Interval Clock</div>
+        <div class="appTag">session summary</div>
+      </div>
+
+      <div class="card strong">
+        <div class="heroDone">
+          <div class="doneTitle">Workout finished, well done!</div>
+          <div class="doneSub">Here’s a detailed breakdown of what you completed.</div>
+        </div>
+
+        <div class="statsGrid">
+          <div class="stat"><div class="k">Total time</div><div class="v" id="doneTotal">—</div><div class="s" id="doneTotalNote">—</div></div>
+          <div class="stat"><div class="k">Active time</div><div class="v" id="doneActive">—</div><div class="s">Sum of all work intervals.</div></div>
+
+          <div class="stat"><div class="k">Rest time</div><div class="v" id="doneRest">—</div><div class="s">All rests except the final one.</div></div>
+          <div class="stat"><div class="k">Total workouts</div><div class="v" id="doneWorkouts">—</div><div class="s" id="doneWorkoutsNote">—</div></div>
+
+          <div class="stat"><div class="k">Work / Rest</div><div class="v" id="doneWorkRest">—</div><div class="s">Seconds per interval.</div></div>
+          <div class="stat"><div class="k">Sets</div><div class="v" id="doneSets">—</div><div class="s">Announcement played after each set completed.</div></div>
+
+          <div class="stat"><div class="k">Rest breaks</div><div class="v" id="doneRestCount">—</div><div class="s">Number of rest intervals performed.</div></div>
+          <div class="stat"><div class="k">Avg cycle length</div><div class="v" id="doneAvgCycle">—</div><div class="s">Work + rest, except last cycle ends after work.</div></div>
+
+          <div class="stat"><div class="k">Session start</div><div class="v" id="doneStart">—</div><div class="s">Local time on this device.</div></div>
+          <div class="stat"><div class="k">Session end</div><div class="v" id="doneEnd">—</div><div class="s">Local time on this device.</div></div>
+
+          <div class="stat"><div class="k">Elapsed</div><div class="v" id="doneElapsed">—</div><div class="s">Includes pauses; based on real clock time.</div></div>
+          <div class="stat"><div class="k">Pause count</div><div class="v" id="donePauseCount">—</div><div class="s">How many times you paused.</div></div>
+        </div>
+
+        <div class="row" style="margin-top:16px;">
+          <button id="btnAgain" class="primary">New Workout</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="fullTap" id="fullTap"></div>
+
+<script>
+(() => {
+  const el = (id) => document.getElementById(id);
+
+  const clampInt = (v, min, max) => {
+    v = Math.floor(Number(v));
+    if (Number.isNaN(v)) v = min;
+    return Math.max(min, Math.min(max, v));
+  };
+
+  const fmtMMSS = (ms) => {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+  };
+
+  const fmtHMS = (sec) => {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${m}:${String(s).padStart(2,'0')}`;
+  };
+
+  const setBodyBG = (mode) => {
+    document.body.classList.remove("bg-ready","bg-work","bg-rest");
+    document.body.classList.add(mode);
+  };
+
+  const fmtTime = (d) => {
+    try { return d.toLocaleTimeString([], { hour:"2-digit", minute:"2-digit", second:"2-digit" }); }
+    catch { return d.toString(); }
+  };
+
+  // screens
+  const screenSetup = el("screenSetup");
+  const screenRun   = el("screenRun");
+  const screenDone  = el("screenDone");
+  const showScreen = (which) => {
+    [screenSetup, screenRun, screenDone].forEach(s => s.classList.remove("active"));
+    which.classList.add("active");
+  };
+
+  // setup inputs
+  const inWork = el("inWork");
+  const inRest = el("inRest");
+  const inWorkoutsPerSet = el("inWorkoutsPerSet");
+  const inSets = el("inSets");
+
+  // summary outputs
+  const sumTotalWorkouts = el("sumTotalWorkouts");
+  const sumActive = el("sumActive");
+  const sumRest = el("sumRest");
+  const sumTotal = el("sumTotal");
+
+  // buttons
+  const btnConfirm = el("btnConfirm");
+  const btnResetSetup = el("btnResetSetup");
+  const btnAgain = el("btnAgain");
+
+  // run UI
+  const runPhase = el("runPhase");
+  const runTime = el("runTime");
+  const runProgress = el("runProgress");
+  const tapHint = el("tapHint");
+  const runHint = el("runHint");
+  const fullTap = el("fullTap");
+  const btnPause = el("btnPause");
+  const btnCancel = el("btnCancel");
+
+  // progress bar
+  const pbarFill = el("pbarFill");
+  const pbarMarkers = el("pbarMarkers");
+  const pbarPct = el("pbarPct");
+  const pbarSetText = el("pbarSetText");
+
+  // done UI
+  const doneTotal = el("doneTotal");
+  const doneActive = el("doneActive");
+  const doneRest = el("doneRest");
+  const doneWorkouts = el("doneWorkouts");
+  const doneWorkoutsNote = el("doneWorkoutsNote");
+  const doneWorkRest = el("doneWorkRest");
+  const doneSets = el("doneSets");
+  const doneRestCount = el("doneRestCount");
+  const doneAvgCycle = el("doneAvgCycle");
+  const doneStart = el("doneStart");
+  const doneEnd = el("doneEnd");
+  const doneElapsed = el("doneElapsed");
+  const donePauseCount = el("donePauseCount");
+  const doneTotalNote = el("doneTotalNote");
+
+  // audio + voice
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }
+  function beep(durationMs = 90, freq = 880) {
+    ensureAudio();
+    if (!audioCtx) return;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.frequency.value = freq;
+    o.type = "sine";
+    g.gain.value = 0.08;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    setTimeout(() => { try { o.stop(); } catch(e){} }, durationMs);
+  }
+  function sayAsync(text, { interrupt = false } = {}) {
+    return new Promise((resolve) => {
+      try {
+        if (!text) return resolve();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
+        if (interrupt) window.speechSynthesis.cancel();
+        u.onend = () => resolve();
+        u.onerror = () => resolve();
+        window.speechSynthesis.speak(u);
+      } catch { resolve(); }
+    });
+  }
+
+  // config + state
+  let cfg = { workSec: 40, restSec: 20, workoutsPerSet: 5, sets: 2 };
+
+  let phase = "READY"; // READY, GETREADY, WORK, REST, PAUSED, DONE
+  let setIndex = 1;
+  let workoutIndexInSet = 1;
+
+  let tickId = null;
+  let phaseEndMs = 0;
+  let lastWholeSecShown = null;
+
+  // pause
+  let isPaused = false;
+  let pausedRemainingMs = 0;
+  let pausedPrevPhase = "WORK";
+  let pauseCount = 0;
+
+  // stats time
+  let sessionStartDate = null;
+  let sessionEndDate = null;
+
+  // planned progress tracking (continuous)
+  let plannedTotalSec = 0;
+  let plannedDoneSec = 0;          // completed phases only
+  let phasePlannedBaseSec = 0;     // plannedDoneSec snapshot at phase start
+  let phaseDurationSec = 0;        // duration of current phase in seconds
+  let lastRemainingMs = 0;         // latest remaining for continuous calc
+
+  // derived totals
+  function totalWorkouts() { return cfg.workoutsPerSet * cfg.sets; }
+
+  function computeStatsPreview() {
+    const workouts = totalWorkouts();
+    const active = workouts * cfg.workSec;
+    const restsCount = Math.max(0, workouts - 1); // skip last rest
+    const rest = restsCount * cfg.restSec;
+    const total = active + rest;
+    return { workouts, active, rest, total, restsCount };
+  }
+
+  function updateSummary() {
+    cfg.workSec = clampInt(inWork.value, 1, 3600);
+    cfg.restSec = clampInt(inRest.value, 0, 3600);
+    cfg.workoutsPerSet = clampInt(inWorkoutsPerSet.value, 1, 999);
+    cfg.sets = clampInt(inSets.value, 1, 999);
+
+    const s = computeStatsPreview();
+    sumTotalWorkouts.textContent = `${s.workouts} (${cfg.workoutsPerSet} × ${cfg.sets})`;
+    sumActive.textContent = fmtHMS(s.active);
+    sumRest.textContent = fmtHMS(s.rest);
+    sumTotal.textContent = fmtHMS(s.total);
+  }
+  [inWork, inRest, inWorkoutsPerSet, inSets].forEach(inp => inp.addEventListener("input", updateSummary));
+
+  function currentPhaseProgressSec() {
+    // how far into current phase (WORK/REST) we are, in seconds
+    if (!(phase === "WORK" || phase === "REST")) return 0;
+
+    const totalMs = phaseDurationSec * 1000;
+    if (totalMs <= 0) return 0;
+
+    const rem = isPaused ? pausedRemainingMs : lastRemainingMs;
+    const doneMs = Math.max(0, Math.min(totalMs, totalMs - rem));
+    return doneMs / 1000;
+  }
+
+  function updateProgressBar() {
+    const inPhase = currentPhaseProgressSec();
+    const continuousDone = phasePlannedBaseSec + inPhase;
+
+    const pct = plannedTotalSec > 0 ? (continuousDone / plannedTotalSec) : 0;
+    const clamped = Math.max(0, Math.min(1, pct));
+    const percentText = Math.round(clamped * 100);
+
+    pbarFill.style.width = (clamped * 100).toFixed(2) + "%";
+    pbarPct.textContent = `${percentText}% complete`;
+    pbarSetText.textContent = `Set ${Math.min(setIndex, cfg.sets)}/${cfg.sets}`;
+  }
+
+  // Markers at the exact moment the SET voice fires:
+  // "Set k of N complete" triggers right after the last WORK of the set finishes (before the rest starts).
+  // So marker is at: end of that WORK, including all previous rests inside the set, but NOT the rest after it.
+  function renderSetMarkers() {
+    pbarMarkers.innerHTML = "";
+    if (plannedTotalSec <= 0 || cfg.sets <= 1) return;
+
+    for (let k = 1; k < cfg.sets; k++) {
+      const workoutsCompleted = k * cfg.workoutsPerSet;
+
+      const workSec = workoutsCompleted * cfg.workSec;
+      const restIntervalsCompleted = Math.max(0, workoutsCompleted - 1);
+      const restSec = restIntervalsCompleted * cfg.restSec;
+
+      const boundarySec = workSec + restSec; // end of last WORK of set k
+      const x = Math.max(0, Math.min(1, boundarySec / plannedTotalSec));
+
+      const m = document.createElement("div");
+      m.className = "pbarMarker";
+      m.style.left = `calc(${(x * 100).toFixed(4)}% - 1px)`;
+      pbarMarkers.appendChild(m);
+    }
+  }
+
+  function updateRunUI(remainingMs) {
+    lastRemainingMs = remainingMs;
+
+    runPhase.textContent = phase;
+    runTime.textContent = fmtMMSS(remainingMs);
+    runProgress.textContent = `Set ${Math.min(setIndex, cfg.sets)}/${cfg.sets} • Workout ${Math.min(workoutIndexInSet, cfg.workoutsPerSet)}/${cfg.workoutsPerSet}`;
+
+    updateProgressBar();
+  }
+
+  function isFinalWorkoutOfSession() {
+    return setIndex === cfg.sets && workoutIndexInSet === cfg.workoutsPerSet;
+  }
+
+  function setControlsEnabled(running) {
+    btnPause.disabled = !running;
+    btnCancel.disabled = !running;
+    btnPause.textContent = isPaused ? "Resume" : "Pause";
+  }
+
+  function stopTicker() {
+    if (tickId) { clearInterval(tickId); tickId = null; }
+  }
+  function startTicker() {
+    stopTicker();
+    tickId = setInterval(tick, 80);
+  }
+
+  function startPhase(nextPhase, durationSec = 0) {
+    phase = nextPhase;
+
+    // snapshot at phase start for continuous bar math
+    phasePlannedBaseSec = plannedDoneSec;
+    phaseDurationSec = durationSec;
+
+    if (phase === "WORK") {
+      setBodyBG("bg-work");
+      sayAsync("Work", { interrupt: true });
+      phaseEndMs = performance.now() + durationSec * 1000;
+    } else if (phase === "REST") {
+      setBodyBG("bg-rest");
+      sayAsync("Rest", { interrupt: true });
+      phaseEndMs = performance.now() + durationSec * 1000;
+    } else if (phase === "GETREADY") {
+      setBodyBG("bg-ready");
+      phaseEndMs = performance.now() + durationSec * 1000;
+    } else {
+      setBodyBG("bg-ready");
+      phaseEndMs = performance.now();
+    }
+
+    lastWholeSecShown = null;
+    updateRunUI(Math.max(0, phaseEndMs - performance.now()));
+  }
+
+  function pauseTimer() {
+    if (!tickId || isPaused) return;
+    pauseCount += 1;
+
+    isPaused = true;
+    pausedRemainingMs = Math.max(0, phaseEndMs - performance.now());
+    pausedPrevPhase = phase;
+
+    stopTicker();
+    phase = "PAUSED";
+    setBodyBG("bg-ready");
+    runPhase.textContent = "PAUSED";
+    runTime.textContent = fmtMMSS(pausedRemainingMs);
+    runHint.textContent = "Paused. Tap Resume to continue.";
+    updateProgressBar();
+    setControlsEnabled(true);
+  }
+
+  function resumeTimer() {
+    if (!isPaused) return;
+    isPaused = false;
+
+    phase = pausedPrevPhase;
+    if (phase === "WORK") setBodyBG("bg-work");
+    else if (phase === "REST") setBodyBG("bg-rest");
+    else setBodyBG("bg-ready");
+
+    phaseEndMs = performance.now() + pausedRemainingMs;
+    lastWholeSecShown = null;
+    runHint.textContent = "";
+    startTicker();
+    setControlsEnabled(true);
+  }
+
+  function cancelSession() {
+    stopTicker();
+    isPaused = false;
+    phase = "READY";
+    setBodyBG("bg-ready");
+    showScreen(screenSetup);
+  }
+
+  btnPause.addEventListener("click", () => {
+    if (!tickId && !isPaused) return;
+    if (isPaused) resumeTimer();
+    else pauseTimer();
+  });
+  btnCancel.addEventListener("click", () => cancelSession());
+
+  function tick() {
+    if (isPaused) return;
+
+    const now = performance.now();
+    const remaining = Math.max(0, phaseEndMs - now);
+
+    // beep last 3 seconds in WORK/REST
+    const wholeSecLeft = Math.ceil(remaining / 1000);
+    if ((phase === "WORK" || phase === "REST") && wholeSecLeft !== lastWholeSecShown) {
+      if (wholeSecLeft === 3 || wholeSecLeft === 2 || wholeSecLeft === 1) beep(90, 880);
+      lastWholeSecShown = wholeSecLeft;
+    }
+
+    updateRunUI(remaining);
+
+    if (remaining <= 0) {
+      if (phase === "GETREADY") {
+        startPhase("WORK", cfg.workSec);
+        return;
+      }
+
+      if (phase === "WORK") {
+        // commit planned WORK completion (so bar/marker alignment matches voice timing)
+        plannedDoneSec += cfg.workSec;
+
+        const completedASet = (workoutIndexInSet === cfg.workoutsPerSet);
+
+        if (isFinalWorkoutOfSession()) {
+          finishSession();
+          return;
+        }
+
+        // Speak set complete BEFORE starting rest (same as before)
+        if (completedASet) {
+          stopTicker();
+          (async () => {
+            // At this exact moment, bar is at end-of-set WORK marker (by marker math).
+            updateProgressBar();
+            await sayAsync(`Set ${setIndex} of ${cfg.sets} complete`, { interrupt: true });
+            startPhase("REST", cfg.restSec);
+            startTicker();
+          })();
+          return;
+        }
+
+        startPhase("REST", cfg.restSec);
+        return;
+      }
+
+      if (phase === "REST") {
+        plannedDoneSec += cfg.restSec;
+
+        if (workoutIndexInSet < cfg.workoutsPerSet) {
+          workoutIndexInSet += 1;
+        } else {
+          setIndex += 1;
+          workoutIndexInSet = 1;
+        }
+
+        startPhase("WORK", cfg.workSec);
+        return;
+      }
+    }
+  }
+
+  async function runGetReadyCountdown() {
+    fullTap.classList.remove("active");
+    tapHint.textContent = "";
+    runHint.textContent = "";
+
+    setControlsEnabled(true);
+
+    phase = "GETREADY";
+    setBodyBG("bg-ready");
+    runPhase.textContent = "GET READY";
+    runTime.textContent = "";
+    runProgress.textContent = `Set ${setIndex}/${cfg.sets} • Workout ${workoutIndexInSet}/${cfg.workoutsPerSet}`;
+
+    await sayAsync("Get ready", { interrupt: true });
+
+    for (const n of ["3","2","1"]) {
+      runPhase.textContent = "GET READY";
+      runTime.textContent = n;
+      beep(90, 660);
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    startPhase("WORK", cfg.workSec);
+    startTicker();
+  }
+
+  function finishSession() {
+    stopTicker();
+    isPaused = false;
+    phase = "DONE";
+    setControlsEnabled(false);
+    setBodyBG("bg-ready");
+
+    sessionEndDate = new Date();
+
+    const s = computeStatsPreview();
+    const avgCycle = cfg.workSec + cfg.restSec;
+
+    // force bar to 100%
+    plannedDoneSec = plannedTotalSec;
+    phasePlannedBaseSec = plannedDoneSec;
+    phaseDurationSec = 0;
+    lastRemainingMs = 0;
+    updateProgressBar();
+
+    const elapsedSec = (sessionStartDate && sessionEndDate)
+      ? (sessionEndDate.getTime() - sessionStartDate.getTime()) / 1000
+      : s.total;
+
+    doneTotal.textContent = fmtHMS(s.total);
+    doneTotalNote.textContent = `Planned duration (excludes pauses).`;
+    doneActive.textContent = fmtHMS(s.active);
+    doneRest.textContent = fmtHMS(s.rest);
+
+    doneWorkouts.textContent = `${s.workouts}`;
+    doneWorkoutsNote.textContent = `${cfg.workoutsPerSet} per set × ${cfg.sets} sets`;
+
+    doneWorkRest.textContent = `${cfg.workSec}s / ${cfg.restSec}s`;
+    doneSets.textContent = `${cfg.sets} sets`;
+
+    doneRestCount.textContent = `${s.restsCount}`;
+    doneAvgCycle.textContent = `${avgCycle}s`;
+
+    doneStart.textContent = sessionStartDate ? fmtTime(sessionStartDate) : "—";
+    doneEnd.textContent = sessionEndDate ? fmtTime(sessionEndDate) : "—";
+    doneElapsed.textContent = fmtHMS(elapsedSec);
+    donePauseCount.textContent = `${pauseCount}`;
+
+    sayAsync("Workout finished, well done!", { interrupt: true });
+    beep(140, 520);
+
+    showScreen(screenDone);
+  }
+
+  function goToRunScreen() {
+    showScreen(screenRun);
+    setBodyBG("bg-ready");
+
+    phase = "READY";
+    runPhase.textContent = "READY";
+    runTime.textContent = "00:00";
+    runProgress.textContent = `Set 1/${cfg.sets} • Workout 1/${cfg.workoutsPerSet}`;
+    tapHint.textContent = "Tap to start workout";
+    runHint.textContent = "First tap unlocks audio/voice on iPad.";
+
+    isPaused = false;
+    pauseCount = 0;
+    setControlsEnabled(false);
+
+    plannedDoneSec = 0;
+    phasePlannedBaseSec = 0;
+    phaseDurationSec = 0;
+    lastRemainingMs = 0;
+    updateProgressBar();
+    renderSetMarkers();
+
+    fullTap.classList.add("active");
+  }
+
+  btnConfirm.addEventListener("click", () => {
+    updateSummary();
+
+    stopTicker();
+    setIndex = 1;
+    workoutIndexInSet = 1;
+    isPaused = false;
+    pauseCount = 0;
+
+    sessionStartDate = new Date();
+    sessionEndDate = null;
+
+    const s = computeStatsPreview();
+    plannedTotalSec = s.total;
+    plannedDoneSec = 0;
+    phasePlannedBaseSec = 0;
+    phaseDurationSec = 0;
+    lastRemainingMs = 0;
+
+    goToRunScreen();
+  });
+
+  btnResetSetup.addEventListener("click", () => {
+    inWork.value = 40;
+    inRest.value = 20;
+    inWorkoutsPerSet.value = 5;
+    inSets.value = 2;
+    updateSummary();
+  });
+
+  fullTap.addEventListener("click", async () => {
+    ensureAudio();
+    try { await sayAsync(" ", { interrupt: false }); } catch {}
+    runGetReadyCountdown();
+  });
+
+  btnAgain.addEventListener("click", () => {
+    stopTicker();
+    isPaused = false;
+    setBodyBG("bg-ready");
+    showScreen(screenSetup);
+  });
+
+  // init
+  updateSummary();
+})();
+</script>
+</body>
+</html>
